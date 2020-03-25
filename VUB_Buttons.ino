@@ -2,8 +2,42 @@
 #include <HardwareSerial.h>
 #include <Print.h>
 #include <Wire.h>
-
+#include "LiquidCrystal_I2C.h"
 #include "pins.h"
+
+//Constants Tim
+
+
+LiquidCrystal_I2C lcd(0x3f, 20,  4);
+
+
+
+
+//Constants Hans
+
+// define bytes to send
+unsigned int RR = 0;
+// Number of breaths per minute setting
+unsigned int VT = 0;
+// Tidal volume= target to deliver
+unsigned int PK = 50;
+//Peak pressure
+unsigned int TS = 0;
+// Breath Trigger Sensitivity = amount the machine should look for
+float IE = 0;
+// Inspiration-expiration rate
+unsigned int PP = 0;
+//PEEP Pressure = Max pressure to deliver
+bool MO = false; //false = Pressure
+//Mode
+
+unsigned int PKtresh = 10;
+unsigned int VTtresh = 10;
+unsigned int PPtresh = 5;
+
+
+
+
 
 // constants won't change. They're used here to set pin numbers:
 int buttonState;             // the current reading from the input pin
@@ -39,24 +73,14 @@ int buttons [numButtons] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 bool test = false;
 
-// define bytes to send
-byte RR = 0;
-// Number of breaths per minute setting
-byte VT = 0;
-// Tidal volume= target to deliver
-byte PP = 0;
-//Peak pressure = Max pressure to deliver
-byte TS = 0;
-// Breath Trigger Sensitivity = amount the machine should look for
-byte IE = 0;
-// Inspiration-expiration rate
-bool MO = false; //false = Pressure
-//Mode
-
 void setup() {
   //for debugging
   Serial.begin(115200);
-
+  //init LCD
+  lcd.backlight();
+  lcd.init();
+  //print values void
+  printLetters();
   //declare all buttons
 
   pinMode(BUTTON_MODE, INPUT_PULLUP);
@@ -84,6 +108,7 @@ void setup() {
 }
 
 void loop() {
+  
   loopMillis = millis();
   //read button inputs
   buttonsRead();
@@ -92,10 +117,14 @@ void loop() {
   //edit parameters
 
   //send parameters
-    serialSend();
+  serialSend();
   //Update screen
 
+  printValues();
+
+
   delay(100);
+
 }
 
 
@@ -140,10 +169,10 @@ void buttonsRead() {
 
   }
   //make the buttons edit the values
-  // PP Pressure 0 & 1
-  PP = PP +  buttons[0] * jumpValue(0);
-  PP = PP -  buttons[1] * jumpValue(1);
-  // PP Pressure 2 & 3
+  // PK Pressure 0 & 1
+  PK = PK +  buttons[0] * jumpValue(0);
+  PK = PK -  buttons[1] * jumpValue(1);
+  // VT 2 & 3
   VT = VT +  buttons[2] * jumpValue(2);
   VT = VT -  buttons[3] * jumpValue(3);
   //RR 4 & 5
@@ -158,6 +187,7 @@ void buttonsRead() {
   if (buttons[10] == 1)
   {
     MO = !MO;
+    clearValues();
   }
 
 }
@@ -171,7 +201,7 @@ int jumpValue(int i) {
   //  lastRequestedValueTime = loopMillis;
   //Serial.println(loopMillis);
   //Serial.println(lastDebounceTime[1][i]);
- // Serial.println(loopMillis-lastDebounceTime[1][0]);
+  // Serial.println(loopMillis-lastDebounceTime[1][0]);
 
 
 
@@ -192,16 +222,103 @@ int jumpValue(int i) {
 
 void serialSend()
 {
+  //1
   Serial.print("Mode=");
   Serial.println(MO);
-
-  Serial.print("PP=");
-  Serial.println(PP);
+  //2
+  Serial.print("PK=");
+  Serial.println(PK);
+  //3
   Serial.print("VT=");
   Serial.println(VT);
+  //4
   Serial.print("RR=");
   Serial.println(RR);
+  //5
   Serial.print("TR=");
   Serial.println(TS);
+  //6
+  Serial.print("IE=");
+  Serial.println(IE);
+  //7
+  Serial.print("PP=");
+  Serial.println(PP);
+  //8
+  Serial.print("PKtresh=");
+  Serial.println(PKtresh);
+  //9
+  Serial.print("VTtresh=");
+  Serial.println(VTtresh);
+  //10
+  Serial.print("PPtresh=");
+  Serial.println(PPtresh);
 
+
+
+
+
+}
+
+
+void printValues() {
+  lcd.setCursor(12, 2);
+  if (MO == true) lcd.print("VOLUME");
+  if (MO == false) lcd.print("PRESSURE");
+  lcd.setCursor(3, 0);
+  lcd.print(PK);
+  lcd.setCursor(7, 0);
+  lcd.print(PKtresh);
+  lcd.setCursor(3, 1);
+  lcd.print(VT);
+  lcd.setCursor(7, 1);
+  lcd.print(VTtresh);
+  lcd.setCursor(15, 0);
+  lcd.print(RR);
+  lcd.setCursor(15, 1);
+  lcd.print(TS);
+  lcd.setCursor(3, 2);
+  lcd.print(PP);
+  lcd.setCursor(7, 2);
+  lcd.print(PPtresh);
+  lcd.setCursor(15, 3);
+  lcd.print(IE);
+}
+void printLetters()
+{
+  lcd.setCursor(0, 0);
+  lcd.print("PK");
+  lcd.setCursor(0, 1);
+  lcd.print("VT");
+  lcd.setCursor(12, 0);
+  lcd.print("RR");
+  lcd.setCursor(12, 1);
+  lcd.print("TS");
+  lcd.setCursor(0, 2);
+  lcd.print("PP");
+  lcd.setCursor(12, 3);
+  lcd.print("IE");
+}
+
+void clearValues()
+{
+  lcd.setCursor(12, 2);
+  lcd.print("        ");
+  lcd.setCursor(3, 0);
+  lcd.print("   ");
+  lcd.setCursor(7, 0);
+  lcd.print("   ");
+  lcd.setCursor(3, 1);
+  lcd.print("   ");
+  lcd.setCursor(7, 1);
+  lcd.print("   ");
+  lcd.setCursor(15, 0);
+  lcd.print("   ");
+  lcd.setCursor(15, 1);
+  lcd.print("   ");
+  lcd.setCursor(3, 2);
+  lcd.print("   ");
+  lcd.setCursor(7, 2);
+  lcd.print("   ");
+  lcd.setCursor(15, 3);
+  lcd.print("   ");
 }
